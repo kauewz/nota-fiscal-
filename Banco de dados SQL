@@ -1,0 +1,215 @@
+CREATE SCHEMA db_nota_fiscal DEFAULT CHARACTER SET utf8;
+USE db_nota_fiscal;
+
+CREATE TABLE CLIENTE_01 (
+    A01_codigo INT PRIMARY KEY AUTO_INCREMENT,
+    A01_nome VARCHAR(100) NOT NULL,
+    A01_endereco VARCHAR(200),
+    A01_telefone VARCHAR(20),
+    A01_cpf VARCHAR(14) UNIQUE,
+    A01_credito DECIMAL(10, 2)
+);
+
+CREATE TABLE PRODUTO_03 (
+    A03_codigo INT PRIMARY KEY AUTO_INCREMENT,
+    A03_descricao VARCHAR(150) NOT NULL,
+    A03_valor_produto DECIMAL(10, 2) NOT NULL,
+    A03_estoque INT
+);
+
+CREATE TABLE PEDIDO_02 (
+    A02_codigo INT PRIMARY KEY AUTO_INCREMENT,
+    A02_data_venda DATE NOT NULL,
+    A02_valor_total DECIMAL(10, 2),
+    A01_codigo INT
+);
+
+CREATE TABLE ITEM_04 (
+    A04_codigo INT PRIMARY KEY AUTO_INCREMENT,
+    A04_quantidade INT NOT NULL,
+    A04_valor_item DECIMAL(10, 2) NOT NULL,
+    A02_codigo INT,
+    A03_codigo INT
+);
+
+-- RELAÇÕES COM EXCLUSÃO EM CASCATA
+ALTER TABLE PEDIDO_02 
+ADD CONSTRAINT FK_Pedido_Cliente FOREIGN KEY (A01_codigo)
+REFERENCES CLIENTE_01(A01_codigo) ON DELETE CASCADE;
+
+ALTER TABLE ITEM_04 
+ADD CONSTRAINT FK_Item_Produto FOREIGN KEY (A03_codigo)
+REFERENCES PRODUTO_03(A03_codigo) ON DELETE CASCADE;
+
+ALTER TABLE ITEM_04 
+ADD CONSTRAINT FK_Item_Pedido FOREIGN KEY (A02_codigo)
+REFERENCES PEDIDO_02(A02_codigo) ON DELETE CASCADE;
+
+-- CRIAÇÃO DAS STORED PROCEDURES
+DELIMITER $$
+
+-- INSERIR CLIENTE
+CREATE PROCEDURE PROC_INS_CLIENTE(
+    IN p_nome VARCHAR(100),
+    IN p_endereco VARCHAR(200),
+    IN p_telefone VARCHAR(20),
+    IN p_cpf VARCHAR(14),
+    IN p_credito DECIMAL(10,2)
+)
+BEGIN
+    INSERT INTO CLIENTE_01 (A01_nome, A01_endereco, A01_telefone, A01_cpf, A01_credito)
+    VALUES (p_nome, p_endereco, p_telefone, p_cpf, p_credito);
+END$$
+
+-- ALTERAR CLIENTE
+CREATE PROCEDURE PROC_ALT_CLIENTE(
+    IN p_codigo INT,
+    IN p_nome VARCHAR(100),
+    IN p_endereco VARCHAR(200),
+    IN p_telefone VARCHAR(20),
+    IN p_cpf VARCHAR(14),
+    IN p_credito DECIMAL(10,2)
+)
+BEGIN
+    UPDATE CLIENTE_01
+    SET A01_nome = p_nome,
+        A01_endereco = p_endereco,
+        A01_telefone = p_telefone,
+        A01_cpf = p_cpf,
+        A01_credito = p_credito
+    WHERE A01_codigo = p_codigo;
+END$$
+
+-- DELETAR CLIENTE
+CREATE PROCEDURE PROC_DEL_CLIENTE(IN p_codigo INT)
+BEGIN
+    DELETE FROM CLIENTE_01 WHERE A01_codigo = p_codigo;
+END$$
+
+
+-- INSERIR PRODUTO
+CREATE PROCEDURE PROC_INS_PRODUTO(
+    IN p_descricao VARCHAR(150),
+    IN p_valor DECIMAL(10,2),
+    IN p_estoque INT
+)
+BEGIN
+    INSERT INTO PRODUTO_03 (A03_descricao, A03_valor_produto, A03_estoque)
+    VALUES (p_descricao, p_valor, p_estoque);
+END$$
+
+-- ALTERAR PRODUTO
+CREATE PROCEDURE PROC_ALT_PRODUTO(
+    IN p_codigo INT,
+    IN p_descricao VARCHAR(150),
+    IN p_valor DECIMAL(10,2),
+    IN p_estoque INT
+)
+BEGIN
+    UPDATE PRODUTO_03
+    SET A03_descricao = p_descricao,
+        A03_valor_produto = p_valor,
+        A03_estoque = p_estoque
+    WHERE A03_codigo = p_codigo;
+END$$
+
+-- DELETAR PRODUTO
+CREATE PROCEDURE PROC_DEL_PRODUTO(IN p_codigo INT)
+BEGIN
+    DELETE FROM PRODUTO_03 WHERE A03_codigo = p_codigo;
+END$$
+
+
+-- INSERIR PEDIDO
+CREATE PROCEDURE PROC_INS_PEDIDO(
+    IN p_data_venda DATE,
+    IN p_valor_total DECIMAL(10,2),
+    IN p_cliente_codigo INT
+)
+BEGIN
+    INSERT INTO PEDIDO_02 (A02_data_venda, A02_valor_total, A01_codigo)
+    VALUES (p_data_venda, p_valor_total, p_cliente_codigo);
+END$$
+
+-- ALTERAR PEDIDO
+CREATE PROCEDURE PROC_ALT_PEDIDO(
+    IN p_codigo INT,
+    IN p_data_venda DATE,
+    IN p_valor_total DECIMAL(10,2),
+    IN p_cliente_codigo INT
+)
+BEGIN
+    UPDATE PEDIDO_02
+    SET A02_data_venda = p_data_venda,
+        A02_valor_total = p_valor_total,
+        A01_codigo = p_cliente_codigo
+    WHERE A02_codigo = p_codigo;
+END$$
+
+-- DELETAR PEDIDO
+CREATE PROCEDURE PROC_DEL_PEDIDO(IN p_codigo INT)
+BEGIN
+    DELETE FROM PEDIDO_02 WHERE A02_codigo = p_codigo;
+END$$
+
+
+-- INSERIR ITEM
+CREATE PROCEDURE PROC_INS_ITEM(
+    IN p_quantidade INT,
+    IN p_valor_item DECIMAL(10,2),
+    IN p_pedido_codigo INT,
+    IN p_produto_codigo INT
+)
+BEGIN
+    INSERT INTO ITEM_04 (A04_quantidade, A04_valor_item, A02_codigo, A03_codigo)
+    VALUES (p_quantidade, p_valor_item, p_pedido_codigo, p_produto_codigo);
+END$$
+
+-- ALTERAR ITEM
+CREATE PROCEDURE PROC_ALT_ITEM(
+    IN p_codigo INT,
+    IN p_quantidade INT,
+    IN p_valor_item DECIMAL(10,2),
+    IN p_pedido_codigo INT,
+    IN p_produto_codigo INT
+)
+BEGIN
+    UPDATE ITEM_04
+    SET A04_quantidade = p_quantidade,
+        A04_valor_item = p_valor_item,
+        A02_codigo = p_pedido_codigo,
+        A03_codigo = p_produto_codigo
+    WHERE A04_codigo = p_codigo;
+END$$
+
+-- DELETAR ITEM
+CREATE PROCEDURE PROC_DEL_ITEM(IN p_codigo INT)
+BEGIN
+    DELETE FROM ITEM_04 WHERE A04_codigo = p_codigo;
+END$$
+
+
+-- ATUALIZAR ESTOQUE
+CREATE PROCEDURE PROC_ATUALIZA_ESTOQUE(
+    IN p_produto_codigo INT,
+    IN p_quantidade_vendida INT
+)
+BEGIN
+    UPDATE PRODUTO_03
+    SET A03_estoque = A03_estoque - p_quantidade_vendida
+    WHERE A03_codigo = p_produto_codigo;
+END$$
+
+-- CALCULAR SALDO DEVEDOR
+CREATE PROCEDURE PROC_CALCULA_SALDO_DEVEDOR(
+    IN p_cliente_codigo INT,
+    OUT p_saldo_devedor DECIMAL(10, 2)
+)
+BEGIN
+    SELECT IFNULL(SUM(A02_valor_total), 0)
+    INTO p_saldo_devedor
+    FROM PEDIDO_02
+    WHERE A01_codigo = p_cliente_codigo;
+END$$
+
+DELIMITER ;
